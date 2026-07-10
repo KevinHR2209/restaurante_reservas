@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Date
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
@@ -8,6 +8,11 @@ class EstadoEspera(str, enum.Enum):
     notificado = "notificado"
     asignado = "asignado"
     cancelado = "cancelado"
+
+class JornadaEspera(str, enum.Enum):
+    manana = "manana"
+    tarde = "tarde"
+    noche = "noche"
 
 class ListaEspera(Base):
     __tablename__ = "lista_espera"
@@ -19,3 +24,5 @@ class ListaEspera(Base):
     estado = Column(Enum(EstadoEspera), default=EstadoEspera.esperando)
     fecha_ingreso = Column(DateTime(timezone=True), server_default=func.now())
     notas = Column(String(255), nullable=True)
+    fecha_reserva = Column(Date, nullable=True)
+    jornada = Column(Enum(JornadaEspera), nullable=True)

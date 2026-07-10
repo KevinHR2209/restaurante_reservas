@@ -11,6 +11,7 @@ from app.models.horario_mozo import HorarioMozo
 from app.models.cliente import Cliente
 from app.schemas.reserva import ReservaCreate, ReservaUpdateEstado, ReservaOut
 from app.services.reserva_service import crear_reserva
+from app.services.lista_espera_service import notificar_espera_por_cancelacion
 
 router = APIRouter()
 
@@ -113,6 +114,11 @@ def cambiar_estado_reserva(reserva_id: UUID, data: ReservaUpdateEstado, db: Sess
     reserva.estado = data.estado
     db.commit()
     db.refresh(reserva)
+
+    # Al cancelar, notificar lista de espera de esa fecha+jornada
+    if data.estado == "cancelada":
+        notificar_espera_por_cancelacion(db, reserva.fecha, reserva.hora_inicio)
+
     return reserva
 
 
@@ -133,15 +139,18 @@ def cancelar_por_token(token: str, db: Session = Depends(get_db)):
     if reserva.estado == "completada":
         return HTMLResponse(_html_error("No cancelable", "Esta reserva ya fue completada y no se puede cancelar."), status_code=400)
 
+    fecha = reserva.fecha
+    hora_inicio = reserva.hora_inicio
     reserva.estado = "cancelada"
     reserva.cancel_token = None
     db.commit()
 
+    # Notificar lista de espera
+    notificar_espera_por_cancelacion(db, fecha, hora_inicio)
+
     nombre = reserva.cliente.nombre if reserva.cliente else "Cliente"
-    fecha = str(reserva.fecha)
-    hora = str(reserva.hora_inicio)[:5]
     personas = reserva.num_personas
-    return HTMLResponse(_html_ok(nombre, fecha, hora, personas), status_code=200)
+    return HTMLResponse(_html_ok(nombre, str(fecha), str(hora_inicio)[:5], personas), status_code=200)
 
 
 @router.get("/{reserva_id}", response_model=ReservaOut)
@@ -156,7 +165,7 @@ def obtener_reserva(reserva_id: UUID, db: Session = Depends(get_db)):
     return reserva
 
 
-# ── HTML helpers ──────────────────────────────────────────────────────────────────────────────
+# ── HTML helpers ──────────────────────────────────────────────────────────────────────────────────
 
 def _base_html(titulo: str, icono: str, color: str, mensaje: str, detalle: str = "") -> str:
     return f"""
