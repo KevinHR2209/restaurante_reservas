@@ -16,7 +16,7 @@ export default function ReservaPublicaPage() {
 
   // Lista de espera
   const [modalEspera, setModalEspera] = useState(false)
-  const [bloqueEspera, setBloqueEspera] = useState(null)
+  const [bloqueEspera, setBloqueEspera] = useState(null) // null = sin hora específica
   const [loadingEspera, setLoadingEspera] = useState(false)
   const [exitoEspera, setExitoEspera] = useState(false)
 
@@ -54,8 +54,7 @@ export default function ReservaPublicaPage() {
     } finally { setLoading(false) }
   }
 
-  // Abrir modal de espera al clickear bloque ocupado
-  const abrirModalEspera = (bloque) => {
+  const abrirModalEspera = (bloque = null) => {
     setBloqueEspera(bloque)
     setModalEspera(true)
     setExitoEspera(false)
@@ -64,11 +63,14 @@ export default function ReservaPublicaPage() {
   const confirmarEspera = async () => {
     setLoadingEspera(true)
     try {
+      const horaTexto = bloqueEspera?.hora
+        ? `Hora deseada: ${bloqueEspera.hora} \u2014 ${form.fecha}`
+        : `Fecha deseada: ${form.fecha} (hora flexible)`
       await agregarEspera({
         nombre_cliente: `${cliente.nombre} ${cliente.apellido}`.trim(),
         telefono: cliente.telefono || null,
         cantidad_personas: form.num_personas,
-        notas: `Hora deseada: ${bloqueEspera?.hora} — ${form.fecha}${form.notas ? ' | ' + form.notas : ''}`,
+        notas: `${horaTexto}${form.notas ? ' | ' + form.notas : ''}`,
       })
       setExitoEspera(true)
     } catch (e) {
@@ -83,7 +85,6 @@ export default function ReservaPublicaPage() {
     setMozoInfo(null)
   }
 
-  // ── Pantalla éxito reserva ────────────────────────────────────────────────
   if (exito) return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-md w-full text-center">
@@ -108,15 +109,13 @@ export default function ReservaPublicaPage() {
                 <div className="text-5xl mb-3">⏳</div>
                 <h2 className="text-xl font-black text-stone-800 mb-2">¡Anotado en lista de espera!</h2>
                 <p className="text-stone-500 text-sm mb-1">
-                  Te avisaremos si se libera un espacio para las <strong>{bloqueEspera?.hora}</strong> del <strong>{form.fecha}</strong>.
+                  {bloqueEspera?.hora
+                    ? <>Te contactaremos si se libera un espacio a las <strong>{bloqueEspera.hora}</strong> del <strong>{form.fecha}</strong>.</>
+                    : <>Te contactaremos si hay disponibilidad el <strong>{form.fecha}</strong>.</>
+                  }
                 </p>
                 <p className="text-stone-400 text-xs mb-6">El restaurante se pondrá en contacto contigo.</p>
-                <button
-                  onClick={() => setModalEspera(false)}
-                  className="btn-primary w-full"
-                >
-                  Cerrar
-                </button>
+                <button onClick={() => setModalEspera(false)} className="btn-primary w-full">Cerrar</button>
               </div>
             ) : (
               <>
@@ -124,24 +123,23 @@ export default function ReservaPublicaPage() {
                   <div>
                     <h2 className="text-lg font-black text-stone-800">Unirse a lista de espera</h2>
                     <p className="text-xs text-stone-400 mt-0.5">
-                      Hora deseada: <span className="font-semibold text-orange-600">{bloqueEspera?.hora}</span> — {form.fecha}
+                      {bloqueEspera?.hora
+                        ? <>Hora deseada: <span className="font-semibold text-orange-600">{bloqueEspera.hora}</span> \u2014 {form.fecha}</>
+                        : <>Fecha: <span className="font-semibold text-orange-600">{form.fecha}</span> \u2014 hora flexible</>
+                      }
                     </p>
                   </div>
                   <button onClick={() => setModalEspera(false)} className="text-stone-400 hover:text-stone-600 text-2xl leading-none">&times;</button>
                 </div>
 
-                <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-sm text-orange-700 mb-5">
-                  Este horario está ocupado. Si se libera un lugar, el restaurante te contactará.
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 mb-5">
+                  ⏳ Te anotaremos en la lista. El restaurante te contactará cuando haya disponibilidad.
                 </div>
 
                 <div className="space-y-3">
                   <div>
                     <label className="label">Nombre</label>
-                    <input
-                      className="input"
-                      value={`${cliente.nombre} ${cliente.apellido}`.trim()}
-                      readOnly
-                    />
+                    <input className="input" value={`${cliente.nombre} ${cliente.apellido}`.trim()} readOnly />
                   </div>
                   <div>
                     <label className="label">Teléfono de contacto</label>
@@ -167,7 +165,7 @@ export default function ReservaPublicaPage() {
                   <button onClick={() => setModalEspera(false)} className="btn-secondary flex-1">Cancelar</button>
                   <button
                     onClick={confirmarEspera}
-                    disabled={loadingEspera || !(`${cliente.nombre}`.trim())}
+                    disabled={loadingEspera || !cliente.nombre.trim()}
                     className="btn-primary flex-1 disabled:opacity-50"
                   >
                     {loadingEspera ? 'Registrando…' : '⏳ Anotarme'}
@@ -181,7 +179,6 @@ export default function ReservaPublicaPage() {
 
       {/* ── Formulario principal ── */}
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
-        {/* Header */}
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 px-8 py-6 text-white">
           <h1 className="text-2xl font-black">🍽️ Hacer una Reserva</h1>
           <p className="text-orange-100 text-sm mt-1">Paso {paso + 1} de {PASOS.length}: {PASOS[paso]}</p>
@@ -195,7 +192,7 @@ export default function ReservaPublicaPage() {
         <div className="p-8 space-y-5">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">{error}</div>}
 
-          {/* Paso 0: Datos personales */}
+          {/* Paso 0 */}
           {paso === 0 && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -208,19 +205,20 @@ export default function ReservaPublicaPage() {
             </div>
           )}
 
-          {/* Paso 1: Mozo y fecha */}
+          {/* Paso 1 */}
           {paso === 1 && (
             <div className="space-y-4">
               <div>
                 <label className="label">Mozo preferido</label>
                 <div className="grid grid-cols-1 gap-2">
                   {mozos.map(m => (
-                    <button key={m.id} type="button" onClick={() => { setForm(p => ({ ...p, mozo_id: m.id })); setMozoInfo(m) }}
+                    <button key={m.id} type="button"
+                      onClick={() => { setForm(p => ({ ...p, mozo_id: m.id })); setMozoInfo(m) }}
                       className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
                         form.mozo_id === m.id ? 'border-primary-500 bg-primary-50' : 'border-stone-200 hover:border-stone-300'
                       }`}>
                       <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center font-black text-orange-600">{m.nombre[0]}{m.apellido[0]}</div>
-                      <div><p className="font-semibold text-stone-800">{m.nombre} {m.apellido}</p></div>
+                      <p className="font-semibold text-stone-800">{m.nombre} {m.apellido}</p>
                     </button>
                   ))}
                 </div>
@@ -234,28 +232,35 @@ export default function ReservaPublicaPage() {
             </div>
           )}
 
-          {/* Paso 2: Hora */}
+          {/* Paso 2 ─ Hora */}
           {paso === 2 && (
             <div className="space-y-4">
               {bloques.length === 0 ? (
-                <p className="text-stone-500 text-sm text-center py-4">El mozo no tiene horario para esta fecha.</p>
+                <div className="text-center py-4">
+                  <p className="text-stone-500 text-sm mb-4">El mozo no tiene horario para esta fecha.</p>
+                  <button
+                    onClick={() => abrirModalEspera(null)}
+                    className="w-full border-2 border-dashed border-amber-400 text-amber-600 font-semibold py-3 rounded-xl hover:bg-amber-50 transition-colors text-sm"
+                  >
+                    ⏳ Anotarme en lista de espera igualmente
+                  </button>
+                </div>
               ) : (
                 <div>
-                  <label className="label">Horario disponible</label>
-                  <p className="text-xs text-stone-400 mb-2">Los horarios en rojo están ocupados — haz clic para unirte a la lista de espera.</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="label">Horario disponible</label>
+                  </div>
+                  <p className="text-xs text-stone-400 mb-3">
+                    Haz clic en un horario libre para reservar.
+                    Los horarios en <span className="text-red-400 font-medium">rojo</span> están ocupados — haz clic para unirte a la espera.
+                  </p>
                   <div className="grid grid-cols-4 gap-2">
                     {bloques.map(b => (
                       <button
                         key={b.hora}
                         type="button"
-                        onClick={() => {
-                          if (b.ocupado) {
-                            abrirModalEspera(b)
-                          } else {
-                            setForm(p => ({ ...p, hora_inicio: b.hora }))
-                          }
-                        }}
-                        title={b.ocupado ? 'Ocupado — click para unirte a la lista de espera' : b.hora}
+                        onClick={() => b.ocupado ? abrirModalEspera(b) : setForm(p => ({ ...p, hora_inicio: b.hora }))}
+                        title={b.ocupado ? 'Ocupado — clic para lista de espera' : 'Seleccionar este horario'}
                         className={`py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
                           b.ocupado
                             ? 'bg-red-50 text-red-400 border-red-200 hover:bg-red-100 hover:border-red-400 cursor-pointer'
@@ -269,8 +274,17 @@ export default function ReservaPublicaPage() {
                       </button>
                     ))}
                   </div>
+
+                  {/* Botón lista de espera general — siempre visible */}
+                  <button
+                    onClick={() => abrirModalEspera(null)}
+                    className="mt-4 w-full border-2 border-dashed border-amber-300 text-amber-600 font-semibold py-2.5 rounded-xl hover:bg-amber-50 transition-colors text-sm"
+                  >
+                    ⏳ Prefiero anotarme en la lista de espera
+                  </button>
                 </div>
               )}
+
               <div><label className="label">Notas (opcional)</label><textarea className="input resize-none" rows={2} value={form.notas} onChange={e => setForm(p => ({ ...p, notas: e.target.value }))} placeholder="Alergias, ocasión especial…" /></div>
               <div className="flex gap-3">
                 <button onClick={() => setPaso(1)} className="btn-secondary flex-1">← Atrás</button>
@@ -279,7 +293,7 @@ export default function ReservaPublicaPage() {
             </div>
           )}
 
-          {/* Paso 3: Confirmar */}
+          {/* Paso 3 */}
           {paso === 3 && (
             <div className="space-y-4">
               <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 space-y-2 text-sm">
