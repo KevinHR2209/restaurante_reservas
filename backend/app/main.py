@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base, SessionLocal
 from app.routers import mesas, mozos, platos, clientes, horarios, reservas
+from app.routers import lista_espera
 from app.seed import run_seed
 
 # Crear tablas si no existen
@@ -31,12 +32,13 @@ app.add_middleware(
 )
 
 # Routers
-app.include_router(mesas.router,    prefix="/api/mesas",    tags=["Mesas"])
-app.include_router(mozos.router,    prefix="/api/mozos",    tags=["Mozos"])
-app.include_router(horarios.router, prefix="/api/horarios", tags=["Horarios"])
-app.include_router(platos.router,   prefix="/api/platos",   tags=["Platos"])
-app.include_router(clientes.router, prefix="/api/clientes", tags=["Clientes"])
-app.include_router(reservas.router, prefix="/api/reservas", tags=["Reservas"])
+app.include_router(mesas.router,         prefix="/api/mesas",        tags=["Mesas"])
+app.include_router(mozos.router,         prefix="/api/mozos",        tags=["Mozos"])
+app.include_router(horarios.router,      prefix="/api/horarios",     tags=["Horarios"])
+app.include_router(platos.router,        prefix="/api/platos",       tags=["Platos"])
+app.include_router(clientes.router,      prefix="/api/clientes",     tags=["Clientes"])
+app.include_router(reservas.router,      prefix="/api/reservas",     tags=["Reservas"])
+app.include_router(lista_espera.router,  prefix="/api",              tags=["Lista de Espera"])
 
 
 @app.get("/", tags=["Health"])
