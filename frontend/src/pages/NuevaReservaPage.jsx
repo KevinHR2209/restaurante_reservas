@@ -4,6 +4,16 @@ import { getMozos, getClientes, getDisponibilidad, createReserva, createCliente,
 
 const emptyEspera = { nombre_cliente: '', telefono: '', cantidad_personas: 2, notas: '' }
 
+function parseApiError(e) {
+  const detail = e.response?.data?.detail
+  if (!detail) return e.message || 'Error desconocido'
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail.map(d => `${d.loc?.slice(1).join(' > ') ?? ''}: ${d.msg}`).join(' | ')
+  }
+  return JSON.stringify(detail)
+}
+
 export default function NuevaReservaPage() {
   const navigate = useNavigate()
   const [mozos, setMozos] = useState([])
@@ -18,7 +28,6 @@ export default function NuevaReservaPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Lista de espera
   const [modalEspera, setModalEspera] = useState(false)
   const [horaEspera, setHoraEspera] = useState(null)
   const [formEspera, setFormEspera] = useState(emptyEspera)
@@ -51,7 +60,7 @@ export default function NuevaReservaPage() {
       setForm(prev => ({ ...prev, cliente_id: r.data.id }))
       setModoNuevo(false)
     } catch (e) {
-      setError('Error al crear cliente: ' + (e.response?.data?.detail || e.message))
+      setError(parseApiError(e))
     }
   }
 
@@ -63,7 +72,7 @@ export default function NuevaReservaPage() {
       await createReserva(form)
       navigate('/reservas')
     } catch (e) {
-      setError(e.response?.data?.detail || 'Error al crear la reserva')
+      setError(parseApiError(e))
     } finally {
       setLoading(false)
     }
@@ -89,7 +98,7 @@ export default function NuevaReservaPage() {
       })
       setExitoEspera(true)
     } catch (e) {
-      setError('Error al agregar a lista de espera')
+      setError(parseApiError(e))
     } finally {
       setLoadingEspera(false)
     }
@@ -102,7 +111,7 @@ export default function NuevaReservaPage() {
         <p className="text-stone-500 mt-1">Completa los campos para crear una reserva</p>
       </div>
 
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">{error}</div>}
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">{String(error)}</div>}
 
       {/* Modal lista de espera */}
       {modalEspera && (
@@ -245,7 +254,6 @@ export default function NuevaReservaPage() {
                     {b.hora}
                     {b.ocupado && <span className="block text-[9px] leading-none mt-0.5 text-stone-400">ocupado</span>}
                   </button>
-                  {/* Boton espera por hora */}
                   <button
                     type="button"
                     onClick={e => { e.stopPropagation(); abrirEspera(b.hora) }}
@@ -280,7 +288,6 @@ export default function NuevaReservaPage() {
             type="button"
             onClick={() => abrirEspera(form.hora_inicio || null)}
             className="btn-secondary"
-            title="Agregar a lista de espera en vez de reservar"
           >
             ⏳ Lista de espera
           </button>
