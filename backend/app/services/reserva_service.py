@@ -7,7 +7,6 @@ from app.models.reserva import Reserva
 from app.models.mozo import Mozo
 from app.models.cliente import Cliente
 from app.models.mesa import Mesa
-from app.models.horario_mozo import HorarioMozo
 from app.schemas.reserva import ReservaCreate
 from app.services.email_service import enviar_confirmacion
 
@@ -23,16 +22,6 @@ def crear_reserva(db: Session, data: ReservaCreate) -> Reserva:
     cliente = db.query(Cliente).filter(Cliente.id == data.cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
-
-    # Verificar que el mozo atiende ese día de la semana
-    dia_semana = data.fecha.weekday()
-    horario = db.query(HorarioMozo).filter(
-        HorarioMozo.mozo_id == data.mozo_id,
-        HorarioMozo.dia_semana == dia_semana,
-        HorarioMozo.activo == True,
-    ).first()
-    if not horario:
-        raise HTTPException(status_code=400, detail="El mozo no trabaja ese día")
 
     # Calcular hora de fin de la reserva
     hora_inicio = data.hora_inicio
