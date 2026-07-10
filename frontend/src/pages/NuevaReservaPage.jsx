@@ -5,11 +5,14 @@ import { getMozos, getClientes, getDisponibilidad, createReserva, createCliente,
 const emptyEspera = { nombre_cliente: '', telefono: '', cantidad_personas: 2, notas: '' }
 
 function parseApiError(e) {
-  const detail = e.response?.data?.detail
-  if (!detail) return e.message || 'Error desconocido'
+  const detail = e?.response?.data?.detail
+  if (!detail) return String(e?.message || 'Error desconocido')
   if (typeof detail === 'string') return detail
   if (Array.isArray(detail)) {
-    return detail.map(d => `${d.loc?.slice(1).join(' > ') ?? ''}: ${d.msg}`).join(' | ')
+    return detail.map(d => {
+      const campo = Array.isArray(d.loc) ? d.loc.slice(1).join(' > ') : ''
+      return campo ? `${campo}: ${d.msg}` : d.msg
+    }).join(' | ')
   }
   return JSON.stringify(detail)
 }
@@ -88,17 +91,18 @@ export default function NuevaReservaPage() {
   const confirmarEspera = async () => {
     setLoadingEspera(true)
     try {
-      const notaHora = hora => hora
-        ? `Hora deseada: ${hora} \u2014 ${form.fecha}`
-        : form.fecha ? `Fecha deseada: ${form.fecha} (hora flexible)` : 'Sin fecha especificada'
+      const nota = horaEspera
+        ? `Hora deseada: ${horaEspera} — ${form.fecha}`
+        : form.fecha ? `Fecha deseada: ${form.fecha} (hora flexible)` : 'Sin fecha'
       await agregarEspera({
         ...formEspera,
         cantidad_personas: Number(formEspera.cantidad_personas),
-        notas: `${notaHora(horaEspera)}${formEspera.notas ? ' | ' + formEspera.notas : ''}`,
+        notas: nota + (formEspera.notas ? ' | ' + formEspera.notas : ''),
       })
       setExitoEspera(true)
     } catch (e) {
       setError(parseApiError(e))
+      setModalEspera(false)
     } finally {
       setLoadingEspera(false)
     }
@@ -111,7 +115,11 @@ export default function NuevaReservaPage() {
         <p className="text-stone-500 mt-1">Completa los campos para crear una reserva</p>
       </div>
 
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">{String(error)}</div>}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          {String(error)}
+        </div>
+      )}
 
       {/* Modal lista de espera */}
       {modalEspera && (
@@ -123,8 +131,8 @@ export default function NuevaReservaPage() {
                 <h2 className="text-xl font-black text-stone-800 mb-2">¡Agregado a lista de espera!</h2>
                 <p className="text-stone-500 text-sm mb-6">
                   {horaEspera
-                    ? <>Cliente anotado para las <strong>{horaEspera}</strong> del <strong>{form.fecha}</strong>.</>
-                    : <>Cliente anotado para el <strong>{form.fecha || 'fecha sin especificar'}</strong>.</>
+                    ? <>Anotado para las <strong>{horaEspera}</strong> del <strong>{form.fecha}</strong>.</>
+                    : <>Anotado para <strong>{form.fecha || 'fecha sin especificar'}</strong>.</>
                   }
                 </p>
                 <div className="flex gap-3">
@@ -139,14 +147,13 @@ export default function NuevaReservaPage() {
                     <h2 className="text-lg font-black text-stone-800">Agregar a lista de espera</h2>
                     <p className="text-xs text-stone-400 mt-0.5">
                       {horaEspera
-                        ? <>⏰ <span className="font-semibold text-orange-600">{horaEspera}</span> &mdash; {form.fecha || 'sin fecha'}</>
-                        : <>📅 {form.fecha || 'sin fecha'} &mdash; hora flexible</>
+                        ? <>⏰ <span className="font-semibold text-orange-600">{horaEspera}</span> — {form.fecha || 'sin fecha'}</>
+                        : <>📅 {form.fecha || 'sin fecha'} — hora flexible</>
                       }
                     </p>
                   </div>
-                  <button onClick={() => setModalEspera(false)} className="text-stone-400 hover:text-stone-600 text-2xl leading-none">&times;</button>
+                  <button onClick={() => setModalEspera(false)} className="text-stone-400 hover:text-stone-600 text-2xl leading-none">×</button>
                 </div>
-
                 <div className="space-y-3">
                   <div>
                     <label className="label">Nombre del cliente *</label>
@@ -165,7 +172,6 @@ export default function NuevaReservaPage() {
                     <input className="input" placeholder="Mesa exterior, ocasión especial…" value={formEspera.notas} onChange={e => setFormEspera(p => ({ ...p, notas: e.target.value }))} />
                   </div>
                 </div>
-
                 <div className="flex gap-3 mt-6">
                   <button onClick={() => setModalEspera(false)} className="btn-secondary flex-1">Cancelar</button>
                   <button
@@ -187,12 +193,7 @@ export default function NuevaReservaPage() {
         <div>
           <label className="label">Cliente</label>
           <div className="flex gap-2">
-            <select
-              className="input flex-1"
-              value={form.cliente_id}
-              onChange={e => setForm(p => ({ ...p, cliente_id: e.target.value }))}
-              required
-            >
+            <select className="input flex-1" value={form.cliente_id} onChange={e => setForm(p => ({ ...p, cliente_id: e.target.value }))} required>
               <option value="">Seleccionar cliente…</option>
               {clientes.map(c => (
                 <option key={c.id} value={c.id}>{c.nombre} {c.apellido} — {c.email}</option>
@@ -236,10 +237,11 @@ export default function NuevaReservaPage() {
         {bloques.length > 0 && (
           <div>
             <label className="label">Hora de inicio</label>
-            <p className="text-xs text-stone-400 mb-2">Los horarios en gris ya tienen una reserva, pero igual puedes seleccionarlos.</p>
+            <p className="text-xs text-stone-400 mb-2">Los horarios en gris ya tienen una reserva, pero igual puedes seleccionarlos o agregarlos a lista de espera.</p>
             <div className="grid grid-cols-4 gap-2">
               {bloques.map(b => (
-                <div key={b.hora} className="relative group">
+                <div key={b.hora} className="flex flex-col gap-1">
+                  {/* Botón hora */}
                   <button
                     type="button"
                     onClick={() => setForm(p => ({...p, hora_inicio: b.hora}))}
@@ -254,14 +256,16 @@ export default function NuevaReservaPage() {
                     {b.hora}
                     {b.ocupado && <span className="block text-[9px] leading-none mt-0.5 text-stone-400">ocupado</span>}
                   </button>
-                  <button
-                    type="button"
-                    onClick={e => { e.stopPropagation(); abrirEspera(b.hora) }}
-                    title={`Lista de espera ${b.hora}`}
-                    className="absolute -top-2 -right-2 w-5 h-5 bg-amber-400 hover:bg-amber-500 text-white text-[10px] rounded-full items-center justify-center shadow hidden group-hover:flex z-10"
-                  >
-                    ⏳
-                  </button>
+                  {/* Botón espera — solo visible si está ocupado */}
+                  {b.ocupado && (
+                    <button
+                      type="button"
+                      onClick={() => abrirEspera(b.hora)}
+                      className="w-full py-1 rounded-lg text-[10px] font-semibold border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all"
+                    >
+                      ⏳ espera
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -284,11 +288,7 @@ export default function NuevaReservaPage() {
           <button type="submit" disabled={loading} className="btn-primary flex-1">
             {loading ? 'Creando…' : 'Crear reserva'}
           </button>
-          <button
-            type="button"
-            onClick={() => abrirEspera(form.hora_inicio || null)}
-            className="btn-secondary"
-          >
+          <button type="button" onClick={() => abrirEspera(form.hora_inicio || null)} className="btn-secondary">
             ⏳ Lista de espera
           </button>
           <button type="button" onClick={() => navigate('/reservas')} className="btn-secondary">Cancelar</button>
