@@ -14,9 +14,8 @@ export default function ReservaPublicaPage() {
   const [exito, setExito] = useState(false)
   const [error, setError] = useState('')
 
-  // Lista de espera
   const [modalEspera, setModalEspera] = useState(false)
-  const [bloqueEspera, setBloqueEspera] = useState(null) // null = sin hora específica
+  const [bloqueEspera, setBloqueEspera] = useState(null)
   const [loadingEspera, setLoadingEspera] = useState(false)
   const [exitoEspera, setExitoEspera] = useState(false)
 
@@ -33,13 +32,11 @@ export default function ReservaPublicaPage() {
   }, [form.mozo_id, form.fecha])
 
   const buscarOCrearCliente = async () => {
-    try {
-      const { data: lista } = await getClientes()
-      const existente = lista.find(c => c.email.toLowerCase() === cliente.email.toLowerCase())
-      if (existente) return existente.id
-      const { data: nuevo } = await createCliente(cliente)
-      return nuevo.id
-    } catch (e) { throw new Error('Error al registrar cliente') }
+    const { data: lista } = await getClientes()
+    const existente = lista.find(c => c.email.toLowerCase() === cliente.email.toLowerCase())
+    if (existente) return existente.id
+    const { data: nuevo } = await createCliente(cliente)
+    return nuevo.id
   }
 
   const confirmar = async () => {
@@ -54,7 +51,7 @@ export default function ReservaPublicaPage() {
     } finally { setLoading(false) }
   }
 
-  const abrirModalEspera = (bloque = null) => {
+  const abrirModalEspera = (bloque) => {
     setBloqueEspera(bloque)
     setModalEspera(true)
     setExitoEspera(false)
@@ -63,14 +60,13 @@ export default function ReservaPublicaPage() {
   const confirmarEspera = async () => {
     setLoadingEspera(true)
     try {
-      const horaTexto = bloqueEspera?.hora
-        ? `Hora deseada: ${bloqueEspera.hora} \u2014 ${form.fecha}`
-        : `Fecha deseada: ${form.fecha} (hora flexible)`
       await agregarEspera({
         nombre_cliente: `${cliente.nombre} ${cliente.apellido}`.trim(),
         telefono: cliente.telefono || null,
         cantidad_personas: form.num_personas,
-        notas: `${horaTexto}${form.notas ? ' | ' + form.notas : ''}`,
+        notas: bloqueEspera?.hora
+          ? `Hora deseada: ${bloqueEspera.hora} \u2014 ${form.fecha}${form.notas ? ' | ' + form.notas : ''}`
+          : `Fecha deseada: ${form.fecha} (hora flexible)${form.notas ? ' | ' + form.notas : ''}`,
       })
       setExitoEspera(true)
     } catch (e) {
@@ -100,7 +96,7 @@ export default function ReservaPublicaPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center p-4">
 
-      {/* ── Modal Lista de Espera ── */}
+      {/* Modal lista de espera */}
       {modalEspera && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8">
@@ -110,7 +106,7 @@ export default function ReservaPublicaPage() {
                 <h2 className="text-xl font-black text-stone-800 mb-2">¡Anotado en lista de espera!</h2>
                 <p className="text-stone-500 text-sm mb-1">
                   {bloqueEspera?.hora
-                    ? <>Te contactaremos si se libera un espacio a las <strong>{bloqueEspera.hora}</strong> del <strong>{form.fecha}</strong>.</>
+                    ? <>Te contactaremos si hay disponibilidad a las <strong>{bloqueEspera.hora}</strong> del <strong>{form.fecha}</strong>.</>
                     : <>Te contactaremos si hay disponibilidad el <strong>{form.fecha}</strong>.</>
                   }
                 </p>
@@ -124,8 +120,8 @@ export default function ReservaPublicaPage() {
                     <h2 className="text-lg font-black text-stone-800">Unirse a lista de espera</h2>
                     <p className="text-xs text-stone-400 mt-0.5">
                       {bloqueEspera?.hora
-                        ? <>Hora deseada: <span className="font-semibold text-orange-600">{bloqueEspera.hora}</span> \u2014 {form.fecha}</>
-                        : <>Fecha: <span className="font-semibold text-orange-600">{form.fecha}</span> \u2014 hora flexible</>
+                        ? <>⏰ Hora deseada: <span className="font-semibold text-orange-600">{bloqueEspera.hora}</span> &mdash; {form.fecha}</>
+                        : <>📅 Fecha: <span className="font-semibold text-orange-600">{form.fecha}</span> &mdash; hora flexible</>
                       }
                     </p>
                   </div>
@@ -133,7 +129,10 @@ export default function ReservaPublicaPage() {
                 </div>
 
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 mb-5">
-                  ⏳ Te anotaremos en la lista. El restaurante te contactará cuando haya disponibilidad.
+                  {bloqueEspera?.ocupado
+                    ? 'Este horario está ocupado. Te avisaremos si se libera un lugar.'
+                    : '⏳ Te anotaremos en la lista. El restaurante te contactará cuando haya disponibilidad.'
+                  }
                 </div>
 
                 <div className="space-y-3">
@@ -153,8 +152,7 @@ export default function ReservaPublicaPage() {
                   <div>
                     <label className="label">Personas</label>
                     <input
-                      type="number" min={1} max={20}
-                      className="input"
+                      type="number" min={1} max={20} className="input"
                       value={form.num_personas}
                       onChange={e => setForm(p => ({ ...p, num_personas: +e.target.value }))}
                     />
@@ -177,7 +175,7 @@ export default function ReservaPublicaPage() {
         </div>
       )}
 
-      {/* ── Formulario principal ── */}
+      {/* Formulario principal */}
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 px-8 py-6 text-white">
           <h1 className="text-2xl font-black">🍽️ Hacer una Reserva</h1>
@@ -232,7 +230,7 @@ export default function ReservaPublicaPage() {
             </div>
           )}
 
-          {/* Paso 2 ─ Hora */}
+          {/* Paso 2 */}
           {paso === 2 && (
             <div className="space-y-4">
               {bloques.length === 0 ? (
@@ -242,45 +240,56 @@ export default function ReservaPublicaPage() {
                     onClick={() => abrirModalEspera(null)}
                     className="w-full border-2 border-dashed border-amber-400 text-amber-600 font-semibold py-3 rounded-xl hover:bg-amber-50 transition-colors text-sm"
                   >
-                    ⏳ Anotarme en lista de espera igualmente
+                    ⏳ Anotarme en lista de espera
                   </button>
                 </div>
               ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="label">Horario disponible</label>
-                  </div>
-                  <p className="text-xs text-stone-400 mb-3">
-                    Haz clic en un horario libre para reservar.
-                    Los horarios en <span className="text-red-400 font-medium">rojo</span> están ocupados — haz clic para unirte a la espera.
+                <div className="space-y-3">
+                  <label className="label">Horario disponible</label>
+                  <p className="text-xs text-stone-400">
+                    Haz clic en un horario para <span className="font-medium text-primary-600">reservar</span>.
+                    Haz clic en ⏳ de cualquier horario para <span className="font-medium text-amber-600">anotarte en lista de espera</span>.
                   </p>
+
+                  {/* Grid de bloques */}
                   <div className="grid grid-cols-4 gap-2">
                     {bloques.map(b => (
-                      <button
-                        key={b.hora}
-                        type="button"
-                        onClick={() => b.ocupado ? abrirModalEspera(b) : setForm(p => ({ ...p, hora_inicio: b.hora }))}
-                        title={b.ocupado ? 'Ocupado — clic para lista de espera' : 'Seleccionar este horario'}
-                        className={`py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
-                          b.ocupado
-                            ? 'bg-red-50 text-red-400 border-red-200 hover:bg-red-100 hover:border-red-400 cursor-pointer'
-                            : form.hora_inicio === b.hora
-                              ? 'bg-primary-600 text-white border-primary-600'
-                              : 'bg-white text-stone-700 border-stone-200 hover:border-primary-400'
-                        }`}
-                      >
-                        {b.hora}
-                        {b.ocupado && <span className="block text-[10px] leading-none mt-0.5 opacity-70">⏳ espera</span>}
-                      </button>
+                      <div key={b.hora} className="relative group">
+                        {/* Botón principal: reservar (solo si libre) o indicar ocupado */}
+                        <button
+                          type="button"
+                          onClick={() => { if (!b.ocupado) setForm(p => ({ ...p, hora_inicio: b.hora })) }}
+                          className={`w-full py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
+                            b.ocupado
+                              ? 'bg-red-50 text-red-300 border-red-200 cursor-default'
+                              : form.hora_inicio === b.hora
+                                ? 'bg-primary-600 text-white border-primary-600'
+                                : 'bg-white text-stone-700 border-stone-200 hover:border-primary-400'
+                          }`}
+                        >
+                          {b.hora}
+                          {b.ocupado && <span className="block text-[9px] leading-none mt-0.5 text-red-300">ocupado</span>}
+                        </button>
+
+                        {/* Botón flotante lista de espera — aparece en hover */}
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); abrirModalEspera(b) }}
+                          title={`Lista de espera para las ${b.hora}`}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-amber-400 hover:bg-amber-500 text-white text-[10px] rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        >
+                          ⏳
+                        </button>
+                      </div>
                     ))}
                   </div>
 
-                  {/* Botón lista de espera general — siempre visible */}
+                  {/* Botón lista de espera general */}
                   <button
                     onClick={() => abrirModalEspera(null)}
-                    className="mt-4 w-full border-2 border-dashed border-amber-300 text-amber-600 font-semibold py-2.5 rounded-xl hover:bg-amber-50 transition-colors text-sm"
+                    className="w-full border-2 border-dashed border-amber-300 text-amber-600 font-semibold py-2.5 rounded-xl hover:bg-amber-50 transition-colors text-sm"
                   >
-                    ⏳ Prefiero anotarme en la lista de espera
+                    ⏳ Prefiero anotarme en lista de espera (hora flexible)
                   </button>
                 </div>
               )}
