@@ -1,13 +1,14 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard',  icon: '🏠' },
-  { to: '/reservas',  label: 'Reservas',   icon: '📅' },
-  { to: '/clientes',  label: 'Clientes',   icon: '👥' },
-  { to: '/mozos',     label: 'Mozos',      icon: '🧑‍🍳' },
-  { to: '/mesas',     label: 'Mesas',      icon: '🪑' },
-  { to: '/platos',    label: 'Platos',     icon: '🍽️' },
-  { to: '/horarios',  label: 'Horarios',   icon: '⏰' },
+  { to: '/dashboard',    label: 'Dashboard',      icon: '🏠' },
+  { to: '/reservas',     label: 'Reservas',        icon: '📅' },
+  { to: '/lista-espera', label: 'Lista de Espera', icon: '⏳' },
+  { to: '/clientes',     label: 'Clientes',        icon: '👥' },
+  { to: '/mozos',        label: 'Mozos',           icon: '🧑‍🍳' },
+  { to: '/mesas',        label: 'Mesas',           icon: '🪑' },
+  { to: '/platos',       label: 'Platos',          icon: '🍽️' },
+  { to: '/horarios',     label: 'Horarios',        icon: '⏰' },
 ]
 
 export default function Layout() {

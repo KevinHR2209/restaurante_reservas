@@ -10,6 +10,7 @@ import PlatosPage from './pages/PlatosPage.jsx'
 import HorarioPage from './pages/HorarioPage.jsx'
 import ReservaPublicaPage from './pages/ReservaPublicaPage.jsx'
 import CancelarReservaPage from './pages/CancelarReservaPage.jsx'
+import ListaEsperaPage from './pages/ListaEsperaPage.jsx'
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="mozos" element={<MozosPage />} />
           <Route path="platos" element={<PlatosPage />} />
           <Route path="horarios" element={<HorarioPage />} />
+          <Route path="lista-espera" element={<ListaEsperaPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

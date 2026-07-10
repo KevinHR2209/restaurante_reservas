@@ -42,4 +42,10 @@ export const createReserva    = (data)          => api.post('/api/reservas/', da
 export const updateEstadoReserva = (id, estado) => api.patch(`/api/reservas/${id}/estado`, { estado })
 export const getDisponibilidad   = (mozo_id, fecha) => api.get(`/api/reservas/disponibilidad/${mozo_id}/${fecha}`)
 
+// ── Lista de Espera ────────────────────────────────────────────────────────
+export const getListaEspera        = (soloActivos = true) => api.get('/api/lista-espera/', { params: { solo_activos: soloActivos } })
+export const agregarEspera         = (data)     => api.post('/api/lista-espera/', data)
+export const actualizarEstadoEspera = (id, data) => api.patch(`/api/lista-espera/${id}`, data)
+export const eliminarEspera        = (id)       => api.delete(`/api/lista-espera/${id}`)
+
 export default api
